@@ -15,7 +15,7 @@
 - [Install Docker](https://docs.docker.com/engine/install/)
 
 - Install [DFU-Programmer](https://github.com/dfu-programmer/dfu-programmer) and [ent](https://github.com/Fourmilab/ent_random_sequence_tester):
-  - Linux: `$ apt-get install -y dfu-programmer ent`
+  - Linux: `$ apt install -y dfu-programmer ent`
   - MacOS: `$ brew install dfu-programmer ent`
 
 ## Build & Upload
