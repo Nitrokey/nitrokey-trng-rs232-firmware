@@ -5,7 +5,7 @@
 
 ## Production
 
-- Download the firmware from the release page
+- Download the firmware from the [release page](https://github.com/Nitrokey/nitrokey-trng-rs232-firmware/releases)
 - Download the dfu-upload.sh script and place it in the same folder
 - Connect a device that you want to flash via USB
 - Run ```./dfu-upload.sh firmware```
@@ -14,9 +14,9 @@
 
 - [Install Docker](https://docs.docker.com/engine/install/)
 
-- Install DFU-Programmer:
-  - Linux: `$ apt-get install -y dfu-programmer`
-  - MacOS: `$ brew install dfu-programmer`
+- Install [DFU-Programmer](https://github.com/dfu-programmer/dfu-programmer) and [ent](https://github.com/Fourmilab/ent_random_sequence_tester):
+  - Linux: `$ apt install -y dfu-programmer ent`
+  - MacOS: `$ brew install dfu-programmer ent`
 
 ## Build & Upload
 
@@ -49,6 +49,17 @@ On development boards:
 2. connect board over USB
 3. shortly close JP2
 
+## Connect the RS232 serial adapter
+
+Use a RS232 serial adapter with a DE-9 port with a total of 9 pins (pin layout: 5-4).
+Connect the serial adapter to the header *J1* of the TRNG, using DuPont cables.
+The required pins on both sides are *GND* and *nRXD*.
+
+* GND (TRNG) -> GND (DE-9 serial adapter: pin 5)
+* nRXD (TRNG) -> nRXD (DE-9 serial adapter: pin 2)
+
+Refer to the [hardware schematics](https://github.com/Nitrokey/nitrokey-trng-rs232-firmware?tab=readme-ov-file#hardware) to identify the correct pins on the TRNG.
+
 ## Monitor random data output
 
 Linux:
@@ -74,6 +85,9 @@ Linux:
 ```
 $ dd if=/dev/[serial device] iflag=fullblock bs=1K count=100 | ent 
 ```
+
+To test on Linux, make sure you run the *stty* command before.
+If you already have done it in the previous step, without disconnecting the RS232 serial adapter meanwhile, you don't need to run it again.
 
 MacOS:
 ```
