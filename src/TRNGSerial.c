@@ -1,6 +1,6 @@
 /*
 	True Random Number Generator "NK TRNG-Serial"
-		Copyright (C)  Nitrokey, 2022.
+		Copyright (C)  Nitrokey, 2022-2025
 		info[at]nitrokey[dot]com
 		Nitrokey.com
 
@@ -33,9 +33,6 @@
 #define COMP2 0b0010
 #define SW1EN 0b0001
 #define SW2EN 0b1000
-
-// determined empirically for maximum entropy and least misfires
-#define DELAY 4
 
 // uncomment for testing of "pure" entropy of board
 // #define ENT_TEST
@@ -107,47 +104,57 @@ int main(void)
 	SetupHardware();
 	cli();
 
-	uint8_t pos = 1;
+	uint8_t pos = 2;
 	uint8_t random_byte = 0;
+	uint8_t pin;
 
+	PORTB = SW1EN | SW2EN;
+	_delay_ms(100);
+
+// CAUTION
+// this code is manually fine-tuned to be time-constant and creating two clock
+// cycles of identical length. Even smallest details can cause the compiler to
+// compile the code differently which might require changed wait-states. So
+// after ANY change of the code, it must be verified with an oscilloscope, that
+// frequency is still 444kHz, and both switch clocks have identical length.
 	// loop
 	for (;;)
 	{
+		pin = PINB;
+		PORTB = 0;
 		PORTB = SW1EN;
-		_delay_loop_1(DELAY);
-		if (PINB & COMP1)
-		{
-			random_byte ^= pos;
-		}
-#ifdef ENT_TEST
-		pos <<= 1;
-#endif
-		PORTB = SW2EN;
-		_delay_loop_1(DELAY);
-		if (PINB & COMP2)
-		{
-			random_byte ^= pos;
-		}
+		random_byte ^= pos & (uint8_t)(0 - ((pin & COMP1) != 0));
+#ifndef ENT_TEST
+		pos = pos << 1 | pos >> 7;
+		Serial_SendByte(random_byte);
+		_delay_loop_1(1);
+		__asm__ volatile ("nop");
+		__asm__ volatile ("nop");
+#else
 		if (pos == 1 << 7)
 		{
 			pos = 1;
-#ifdef ENT_TEST
-			if (Serial_IsSendReady())
-			{
-				Serial_SendByte(random_byte);
-			}
-			random_byte = 0;
-#endif
-		}
-		else
-		{
-			pos <<= 1;
-		}
-#ifndef ENT_TEST
-		if (Serial_IsSendReady())
-		{
 			Serial_SendByte(random_byte);
+			random_byte = 0;
+		} else {
+			pos <<= 1;
+			__asm__ volatile ("nop");
+			__asm__ volatile ("nop");
 		}
+#endif
+		pin = PINB;
+		PORTB = 0;
+		PORTB = SW2EN;
+		random_byte ^= pos & (uint8_t)(0 - ((pin & COMP2) != 0));
+		pos = pos << 1 | pos >> 7;
+#ifndef ENT_TEST
+		Serial_SendByte(random_byte);
+		_delay_loop_1(1);
+		__asm__ volatile ("nop");
+		__asm__ volatile ("nop");
+#else
+		_delay_loop_1(3);
+		__asm__ volatile ("nop");
 #endif
 	}
 }
