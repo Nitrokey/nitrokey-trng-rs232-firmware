@@ -111,6 +111,10 @@ int main(void)
 	PORTB = SW1EN | SW2EN;
 	_delay_ms(100);
 
+// Read-write (execution) barrier
+#define BARRIER \
+    __asm__ volatile ("" : "+r" (pos), "+r" (random_byte), "+r" (pin))
+
 // CAUTION
 // this code is manually fine-tuned to be time-constant and creating two clock
 // cycles of identical length. Even smallest details can cause the compiler to
@@ -123,6 +127,7 @@ int main(void)
 		pin = PINB;
 		PORTB = 0;
 		PORTB = SW1EN;
+		BARRIER;
 		random_byte ^= pos & (uint8_t)(0 - ((pin & COMP1) != 0));
 #ifndef ENT_TEST
 		pos = pos << 1 | pos >> 7;
@@ -138,23 +143,25 @@ int main(void)
 			random_byte = 0;
 		} else {
 			pos <<= 1;
-			__asm__ volatile ("nop");
+			_delay_loop_1(1);
 			__asm__ volatile ("nop");
 		}
+		__asm__ volatile ("nop");
 #endif
+		BARRIER;
 		pin = PINB;
 		PORTB = 0;
 		PORTB = SW2EN;
+		BARRIER;
 		random_byte ^= pos & (uint8_t)(0 - ((pin & COMP2) != 0));
 		pos = pos << 1 | pos >> 7;
 #ifndef ENT_TEST
 		Serial_SendByte(random_byte);
-		_delay_loop_1(1);
 		__asm__ volatile ("nop");
 		__asm__ volatile ("nop");
 #else
-		_delay_loop_1(3);
-		__asm__ volatile ("nop");
+		_delay_loop_1(2);
 #endif
+		BARRIER;
 	}
 }
